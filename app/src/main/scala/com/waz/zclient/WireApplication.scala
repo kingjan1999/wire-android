@@ -29,6 +29,7 @@ import android.support.multidex.MultiDexApplication
 import android.support.v4.app.{FragmentActivity, FragmentManager}
 import com.waz.ZLog.ImplicitTag._
 import com.waz.ZLog.verbose
+import com.waz.api.impl.AccentColor
 import com.waz.api._
 import com.waz.content.{AccountStorage, GlobalPreferences, TeamsStorage}
 import com.waz.log.InternalLog
@@ -38,7 +39,7 @@ import com.waz.service._
 import com.waz.service.tracking.TrackingService
 import com.waz.utils.events.{EventContext, Signal}
 import com.waz.zclient.appentry.controllers.{CreateTeamController, InvitationsController}
-import com.waz.zclient.calling.controllers.{CallStartController, CallController}
+import com.waz.zclient.calling.controllers.{CallController, CallStartController}
 import com.waz.zclient.camera.controllers.{AndroidCameraFactory, GlobalCameraController}
 import com.waz.zclient.collection.controllers.CollectionController
 import com.waz.zclient.common.controllers.global.{AccentColorController, ClientsController, KeyboardController, PasswordController}
@@ -62,7 +63,8 @@ import com.waz.zclient.cursor.CursorController
 import com.waz.zclient.integrations.IntegrationDetailsController
 import com.waz.zclient.messages.controllers.{MessageActionsController, NavigationController}
 import com.waz.zclient.messages.{LikesController, MessageViewFactory, MessagesController, UsersController}
-import com.waz.zclient.notifications.controllers.{CallingNotificationsController, ImageNotificationsController, MessageNotificationsController}
+import com.waz.zclient.notifications.controllers.NotificationManagerWrapper.AndroidNotificationsManager
+import com.waz.zclient.notifications.controllers.{CallingNotificationsController, ImageNotificationsController, MessageNotificationsController, NotificationManagerWrapper}
 import com.waz.zclient.pages.main.conversation.controller.IConversationScreenController
 import com.waz.zclient.pages.main.conversationpager.controller.ISlidingPaneController
 import com.waz.zclient.pages.main.pickuser.controller.IPickUserController
@@ -92,6 +94,8 @@ object WireApplication {
     bind [RenderScript]         to RenderScript.create(ctx)
 
     def controllerFactory = APP_INSTANCE.asInstanceOf[ZApplication].getControllerFactory
+
+    bind [NotificationManagerWrapper] to new AndroidNotificationsManager(APP_INSTANCE.getSystemService(Context.NOTIFICATION_SERVICE).asInstanceOf[NotificationManager])
 
     //SE Services
     bind [GlobalModule]                   to ZMessaging.currentGlobal

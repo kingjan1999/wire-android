@@ -68,11 +68,6 @@ class QuickReplyFragment extends Fragment with FragmentHelper {
 
   lazy val sharing  = inject[SharingController]
 
-  lazy val accentColor = for {
-    z <- zms
-    accent  <- inject[AccentColorController].accentColor(z)
-  } yield accent
-
   lazy val message = findById[TypefaceEditText](R.id.tet__quick_reply__message)
   lazy val layoutManager = new ViewPagerLikeLayoutManager(getContext)
 
@@ -163,7 +158,7 @@ class QuickReplyFragment extends Fragment with FragmentHelper {
 
     subscriptions = Seq(
       conv.map(_.displayName).onUi { name.setText },
-      accentColor.map(_.getColor()).onUi { message.setAccentColor },
+      inject[AccentColorController].accentColor.map(_.getColor()).onUi { message.setAccentColor },
       counterStr.onUi { case (visible, str) =>
         counter.setVisible(visible)
         counter.setText(str)

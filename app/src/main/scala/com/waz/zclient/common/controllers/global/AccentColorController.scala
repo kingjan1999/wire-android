@@ -20,37 +20,45 @@ package com.waz.zclient.common.controllers.global
 import com.waz.api.impl.{AccentColor, AccentColors}
 import com.waz.content.GlobalPreferences
 import com.waz.content.Preferences.PrefKey
+import com.waz.model.UserId
 import com.waz.service.ZMessaging
 import com.waz.utils.crypto.ZSecureRandom
 import com.waz.utils.events.Signal
 import com.waz.zclient.{Injectable, Injector}
 
 class AccentColorController(implicit inj: Injector) extends Injectable {
-  private lazy val prefs = inject[GlobalPreferences]
 
-  private val zms = inject[Signal[Option[ZMessaging]]]
+  private lazy val zmsOpt = inject[Signal[Option[ZMessaging]]]
 
-  private val randomColorPref = prefs.preference(PrefKey[Int]("random_accent_color", ZSecureRandom.nextInt(AccentColors.colors.length)))
+  private lazy val selfUserId = zmsOpt.map(_.map(_.selfUserId))
 
-  val accentColor: Signal[com.waz.api.AccentColor] = zms.flatMap {
-    case Some(z) => accentColor(z)
-    case _ => randomColorPref.signal.map {
-      AccentColors.colors(_)
-    }
+  private lazy val randomColor =
+    inject[GlobalPreferences]
+      .preference(PrefKey[Int]("random_accent_color", ZSecureRandom.nextInt(AccentColors.colors.length)))
+      .signal
+      .map(AccentColors.colors(_))
+
+  lazy val accentColor: Signal[AccentColor] = selfUserId.flatMap(
+    _.fold(Signal.const(Option.empty[AccentColor]))(accentColor(_))
+  ).flatMap {
+    case Some(color) => Signal.const(color)
+    case None        => randomColor
   }
 
-  val accentColorNoEmpty: Signal[com.waz.api.AccentColor] = for {
-    Some(z) <- zms
-    color <- accentColor(z)
+  lazy val accentColorNoEmpty: Signal[AccentColor] = for {
+    Some(selfId) <- selfUserId
+    Some(color)  <- accentColor(selfId)
   } yield color
 
-  def accentColor(z: ZMessaging): Signal[com.waz.api.AccentColor] = z.usersStorage.optSignal(z.selfUserId).map {
-    case Some(u) => Some(AccentColor(u.accent))
-    case _ => None
-  }.flatMap {
-    case Some(c) => Signal.const(c)
-    case None => randomColorPref.signal.map {
-      AccentColors.colors(_)
-    }
+  def accentColor(userId: UserId): Signal[Option[AccentColor]] = colors.map(_.get(userId))
+
+  lazy val colors: Signal[Map[UserId, AccentColor]] = zmsOpt.flatMap {
+    case None => Signal.const(Map.empty)
+    case Some(zms) =>
+      for {
+        users    <- zms.accounts.accountsWithManagers
+        userData <- Signal.sequence(users.map(zms.usersStorage.signal).toSeq: _*)
+      } yield userData.map(u =>  u.id -> AccentColor(u.accent)).toMap
   }
+
 }
