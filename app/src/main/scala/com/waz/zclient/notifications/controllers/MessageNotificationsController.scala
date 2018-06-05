@@ -27,7 +27,6 @@ import android.support.v4.app.NotificationCompat
 import android.text.TextUtils
 import com.waz.ZLog.ImplicitTag.implicitLogTag
 import com.waz.ZLog.verbose
-import com.waz.api.NotificationsHandler.NotificationType
 import com.waz.api.NotificationsHandler.NotificationType._
 import com.waz.bitmap.BitmapUtils
 import com.waz.model._
@@ -212,7 +211,7 @@ class MessageNotificationsController(bundleEnabled: Boolean = Build.VERSION.SDK_
       clearNotificationsIntent = Some((userId, Some(n.convId)))
     )
 
-    if (n.tpe != NotificationType.CONNECT_REQUEST)
+    if (n.tpe != CONNECT_REQUEST)
       specProps.copy(
         action1 = Some((userId, n.convId, requestBase + 1, bundleEnabled)),
         action2 = Some((userId, n.convId, requestBase + 2, bundleEnabled))
@@ -227,9 +226,12 @@ class MessageNotificationsController(bundleEnabled: Boolean = Build.VERSION.SDK_
 
     val titleText =
       if (isSingleConv) {
-        if (ns.exists(_.isEphemeral)) getString(R.string.notification__message__ephemeral_someone)
-        else if (ns.head.isGroupConv) ns.head.convName.getOrElse("")
-        else ns.head.convName.orElse(ns.head.userName).getOrElse("")
+        if (ns.exists(_.isEphemeral))
+          getString(R.string.notification__message__ephemeral_someone)
+        else if (ns.head.isGroupConv)
+          ns.head.convName.getOrElse("")
+        else
+          ns.head.convName.orElse(ns.head.userName).getOrElse("")
       }
       else
         getQuantityString(R.plurals.notification__new_messages__multiple, ns.size, Integer.valueOf(ns.size), convIds.size.toString)
